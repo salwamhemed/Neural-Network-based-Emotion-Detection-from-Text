@@ -8,8 +8,8 @@ from nltk.stem import PorterStemmer, WordNetLemmatizer
 import sklearn
 from sklearn.model_selection import train_test_split
 import tensorflow as tf
-from keras.layers import Dense
-from keras.models import Sequential
+from keras._tf_keras.keras.layers import Dense
+from keras._tf_keras.keras.models  import Sequential
 from sklearn import preprocessing
 from sklearn.feature_extraction.text import CountVectorizer
 import pickle
@@ -57,34 +57,63 @@ X = cv.fit_transform(df['text']).toarray()
 y = df['label']
 X_train, X_test ,y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# # #Training the model Using NN 
+from keras._tf_keras.keras.layers import Dense, Dropout, BatchNormalization
+
+# Improved model architecture
 model = Sequential([
-      Dense(32, input_shape=(X_train.shape[1],), activation='relu'),
-      Dense(24, activation='relu'),
-      Dense(12, activation='relu'),
-      Dense(6, activation='softmax')
-  ])
+    Dense(64, input_shape=(X_train.shape[1],), activation='relu'),
+    BatchNormalization(),  
+    Dropout(0.3),          
+
+    Dense(48, activation='relu'),
+    BatchNormalization(),
+    Dropout(0.3),
+
+    Dense(24, activation='relu'),
+    BatchNormalization(),
+    Dropout(0.3),
+
+    Dense(12, activation='relu'),
+    BatchNormalization(),
+
+    Dense(6, activation='softmax')  
+])
+
+# Compile the model with a better optimizer and evaluation metric
+model.compile(optimizer='adam',
+              loss='categorical_crossentropy',
+              metrics=['accuracy'])
+
+# Print model summary
+model.summary()
+
 model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-history = model.fit(X_train, y_train, epochs=10 , batch_size=10)
-plt.plot(history.history['loss'], label='Training Loss')
-plt.xlabel('Epoch')
-plt.ylabel('Loss')
-plt.title('Training Loss over Epochs')
-
-plt.legend()
-plt.show()
-
-
-plt.plot(history.history['accuracy'], label='Training Accuracy')
+hist = model.fit(X_train, y_train, epochs=10 , batch_size=10, validation_data=(X_test, y_test))
+# Plotting accuracy
+plt.plot(hist.history['accuracy'])
+plt.plot(hist.history['val_accuracy'])
+plt.title('Model Accuracy')
 plt.xlabel('Epoch')
 plt.ylabel('Accuracy')
-plt.title('Training Accuracy over Epochs')
-plt.savefig('Training Accuracy over Epochs.png')
-plt.legend()
+plt.legend(['Train', 'Test'], loc='upper left')
+plt.savefig("model accuracy.png")
+plt.show()
+
+# Plotting loss
+plt.plot(hist.history['loss'])
+plt.plot(hist.history['val_loss'])
+plt.title('Model Loss')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.legend(['Train', 'Test'], loc='upper left')
+plt.savefig('Model Loss.png')
+plt.show()
+
 plt.show()
 
 tf.keras.models.save_model(model, 'my_model.h5')
 with open("count_vectorizer.pkl", "wb") as f:
     pickle.dump(cv, f)
 pickle.dump(encoder, open('encoder.pkl', 'wb'))
-
+loss , accuracy = model.evaluate(X_train, y_train)
+print("the accuracy and loss in testing data is ", accuracy, loss)
